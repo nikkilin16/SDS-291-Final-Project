@@ -5,9 +5,88 @@ format: pdf
 
 ```{r}
 library(readr)
+library(stargazer)
+library(tidyverse)
+library(leaps)
+library(HH)
 ```
 
 ```{r}
-data2 <- read_csv("Dataset.csv")
+dep <- read_csv("Dataset.csv")
 ```
+
+```{r}
+new_dep <- dep %>% 
+  dplyr::select(c("gender", "ethnicity", "age", "distance_to_home", "depression_time1", "depression_time2")) %>% 
+  mutate(depression_change = depression_time2 - depression_time1)
+```
+
+```{r, echo=F, results='asis'}
+stargazer(new_dep, type = "latex",            title="Descriptive statistics", digits=1, header=F) 
+```
+
+```{r}
+main_model <- lm(depression_change~gender*ethnicity, data=new_dep)
+summary(main_model)
+```
+
+
+
+
+## testing entire dataset
+
+```{r}
+draft_dep <- dep %>% 
+  mutate(depr_change = depression_time2 - depression_time1) %>% 
+  mutate(soc_change = prosocial_time2 - prosocial_time1) %>% 
+  mutate(rel_change = relationalagg_time2 - relationalagg_time1) %>% 
+  mutate(anx_change = socialanx_time2 - socialanx_time1) %>% 
+  mutate(alc_change = alcohol_time2 - alcohol_time1)
+
+draft_dep <- draft_dep %>% 
+  dplyr::select(c("gender", "ethnicity", "age", "distance_to_home","highschool", "athlete", 
+                  "depr_change", "soc_change", "rel_change", "anx_change", "alc_change"
+                  ))
+```
+
+```{r}
+deression <- regsubsets(depr_change ~ gender + ethnicity + age + distance_to_home + highschool + athlete, data = draft_dep)
+summaryHH(deression)
+```
+
+```{r}
+com_depression <- lm(depr_change ~ gender + ethnicity + age + distance_to_home + highschool + athlete, data = draft_dep)
+summary(com_depression)
+```
+
+# starting from scratch
+```{r}
+all_predictors_model <- lm(depression_time1 ~ prosocial_time1 + relationalagg_time1 + relationalvic_time1 + socialanx_time1 + alcohol_time1 + gender + ethnicity + age + distance_to_home + highschool + athlete, data = dep)
+summary(all_predictors_model)
+```
+
+```{r}
+all_predictors <- regsubsets(depression_time1 ~ prosocial_time1 + relationalagg_time1 + relationalvic_time1 + socialanx_time1 + alcohol_time1 + gender + ethnicity + age + distance_to_home + highschool + athlete, data = dep)
+summaryHH(all_predictors)
+```
+
+```{r}
+sig_predictors <- lm(depression_time1 ~ prosocial_time1 + socialanx_time1 + gender + ethnicity, data = dep)
+summary(sig_predictors)
+```
+
+```{r}
+sig_interaction <- lm(depression_time1 ~ prosocial_time1 + socialanx_time1 + gender + ethnicity + gender*ethnicity, data = dep)
+summary(sig_interaction)
+```
+
+```{r}
+sig_dep <- dep %>% 
+  dplyr::select(c("depression_time1", "prosocial_time1", "socialanx_time1", "gender", "ethnicity"))
+```
+
+
+
+
+
 
